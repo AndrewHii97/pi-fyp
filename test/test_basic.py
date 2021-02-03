@@ -3,7 +3,7 @@ import pytest
 import pathlib
 from pathlib import Path
 from src.fyp import config as cf 
-from src.fyp import fyp_cli
+from src.fyp import cli as fyp_cli
 
 
 
