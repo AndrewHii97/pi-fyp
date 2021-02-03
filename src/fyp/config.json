@@ -1,0 +1,9 @@
+{
+	"endpoint":"a3iz7l1satteal-ats.iot.us-east-1.amazonaws.com",
+	"certificate_path":"./cert_key/my_raspi.cert.pem",
+	"private_key":"./cert_key/my_raspi.private.key",
+	"rootCA":"./cert_key/root-CA.crt",
+	"port":"8883",
+	"clientId":"my_rasp_pi",
+	"thingName":"my_rasp_pi"	
+}
