@@ -4,6 +4,6 @@
 	"private_key":"./cert_key/my_raspi.private.key",
 	"rootCA":"./cert_key/root-CA.crt",
 	"port":"8883",
-	"clientId":"my_rasp_pi",
-	"thingName":"my_rasp_pi"	
+	"client_id":"my_rasp_pi",
+	"thing_name":"my_rasp_pi"	
 }
