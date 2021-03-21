@@ -1,5 +1,4 @@
 # pi-fyp
-Code written for FYP on Pi 
+Final Year Project - Python, Raspberry Pi 
 
-## extra
-Boot Raspberry pi using HDD instead of flash card 
+
