@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 class Device(Publisher): 
-	def __init__(self,device_id):
+	def __init__(self):
 		super().__init__()
 
 class Motor(Device): 
