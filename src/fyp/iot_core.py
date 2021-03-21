@@ -3,18 +3,24 @@ import time
 import logging 
 import setting
 
+
 class IoTShadow:
-	def __init__(self,configuration):
+	def __init__(self):
 			# declare private variable 
-			self.__config = None 
 			self.__logger = None 
-			self.__config = None 
 			self.__shadow_client = None 
 			self.__device_shadow_handler = None 
 			self.__is_connected = False
+			# declare variable required for iot shadow connection
+			self.__endpoint = setting.ENDPOINT
+			self.__certificate_path = setting.CERTIFICATE_PATH
+			self.__private_key = setting.PRIVATE_KEY
+			self.__root_ca = setting.ROOTCA
+			self.__port = setting.PORT  
+			self.__client_id = setting.CLIENT_ID
+			self.__thing_name = setting.THING_NAME 
 			# constructor 
 			self.__logger = self.__create_logger()
-			self.__config = configuration 
 		 
 	def __create_logger(self):
 		logger = logging.getLogger("AWSIoTPythonSDK.core")
@@ -29,15 +35,15 @@ class IoTShadow:
 	# init using private key, rootCA and certificate 
 	def __setup_mqtt_shadow_client(self):
 		# Init AWSIoTMQTTShadowClient 
-		shadow_client = AWSIoTMQTTShadowClient(self.__config.get_client_id())
+		shadow_client = AWSIoTMQTTShadowClient(self.__client_id)
 		shadow_client.configureEndpoint(
-			self.__config.get_endpoint()
-			, self.__config.get_port()
+			self.__endpoint,
+			self.__port
 		)
 		shadow_client.configureCredentials(
-			self.__config.get_rootCA_path()
-			, self.__config.get_private_key_path()
-			, self.__config.get_certifcate_path()
+			self.__root_ca,
+			self.__private_key,
+			self.__certifcate_path
 		)
 		# AWSIoTMQTTShadowClient configuration
 		shadow_client.configureAutoReconnectBackoffTime(1,32,20)
@@ -49,13 +55,13 @@ class IoTShadow:
 	def __create_shadow_handler(self,thing_name): 
 		# Create a device Shadow with persistent subscription
 		self.__device_shadow_handler \
-			= self.__device_shadow.createShadowHandlerWithName(self.__config.get_thing_name(),True)
+			= self.__device_shadow.createShadowHandlerWithName(self.__thing_name,True)
 	
 	def connect_shadow_client(self):
 		self.__setup_mqtt_shadow_client()
 		# Connect to AWS IoT 
 		self.__shadow_client.connect()
-		self.__create_shadow_handler(self.__config.get_thing_name())
+		self.__create_shadow_handler(self.__thing_name)
 		self.__is_connected = True
 		
 	def is_connected(self):

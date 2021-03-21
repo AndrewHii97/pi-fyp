@@ -1,67 +1,21 @@
 import sys
 import RPi.GPIO as GPIO 
 import time
+import logging 
 from mfrc522 import SimpleMFRC522
 from obsvr_pttn import Publisher
 
-class DeviceQueue: 
-	
-	def __init__(self,config): 
-		devices = config.get_devices()
-		self.dev_q = []	
-		# create device & put in List
-		for device in devices: 
-			new_device = None
-			device_type = device["type"]
-			if device_type == "motor" :
-				new_device = Motor(device["input"][0]
-					,device["input"][1]
-					,device["input"][2]
-					,device["input"][3]
-					,device["id"])
-			elif device_type == "rfid":
-				new_device = RfidReader(device["id"])
-			elif device_type == "gate_lock":
-				new_device = DoorLock(
-					device["input"][0]
-					,device["output"][0]
-					,device["id"])
-			elif device_type == "ultra_sonic" : 
-				new_device = USonicSensor(
-					device["output"][0]
-					,device["input"][0] 
-					,device["id"])
-			self.dev_q.append(new_device)
-			print(self.dev_q)
-	
-	def get_device_using_id(self,device_id): 
-		for device in self.dev_q:
-			if device.get_device_id() == device_id.value:
-				return device 
+logging.basicConfig(level=logging.NOTSET)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 class Device(Publisher): 
 	def __init__(self,device_id):
 		super().__init__()
-		self.__id =  device_id
-
-	def set_device_id(self,device_id): 
-		self.__id = device_id 
-		
-	def get_device_id(self): 
-		return self.__id 
-
-	def set_device_meta(self,meta : str) : 
-		self.__meta = meta 
-
-	def get_device_meta(self) :
-		return self.__meta
-
-	def __del__(self): 
-		super().__del__() 
 
 class Motor(Device): 
-	def __init__(self,pin1,pin2,pin3,pin4,device_id):
-		super().__init__(device_id)
+	def __init__(self,pin1,pin2,pin3,pin4):
+		super().__init__()
 		# initiate pin number as constant 
 		self.__PIN1 = pin1 
 		self.__PIN2 = pin2 
@@ -139,8 +93,8 @@ class Motor(Device):
 
 class USonicSensor(Device): 
 	
-	def __init__(self,trig_pin,echo_pin,device_id):
-		super().__init__(device_id)
+	def __init__(self,trig_pin,echo_pin):
+		super().__init__()
 		# initialize trig and echo pin for Ultrasonic sensor 
 		self.__TRIG = trig_pin
 		self.__ECHO = echo_pin
@@ -152,10 +106,10 @@ class USonicSensor(Device):
 		self.__trig_dist = 0 
 		
 	def calibrate(self): 
-		print("calibrating")
+		logger.info("calibrating")
 		GPIO.output(self.__TRIG,False)
 		time.sleep(2)
-		print("get distance in calibrating")
+		logger.info("get distance in calibrating")
 		self.__trig_dist = self.get_distance()
 
 	def get_distance(self): 
@@ -195,8 +149,8 @@ class USonicSensor(Device):
 
 class RfidReader(Device): 
 
-	def __init__(self,device_id): 
-		super().__init__(device_id)
+	def __init__(self): 
+		super().__init__()
 		# 3.3V => Pin 1
 		# GND => Pin 6 
 		# pin allocation 
@@ -204,6 +158,7 @@ class RfidReader(Device):
 		self.__MOSI = 19 # Master out Slave In (data line) 
 		self.__MISO = 21 # Master in Slave out (data line) 
 		self.__RST = 22 # Reset 
+		self.__SDA = 23 # Select 
 		self.__reader = SimpleMFRC522()
 		self.__rfid_id = None 
 		self.__rfid_text = None 
@@ -235,8 +190,8 @@ class RfidReader(Device):
 
 class DoorLock(Device):
 	
-	def __init__(self, in_pin, out_pin,device_id): 
-		super().__init__(device_id)
+	def __init__(self, in_pin, out_pin): 
+		super().__init__()
 		GPIO.setmode(GPIO.BOARD)
 		self.__OUT_PIN = out_pin 
 		self.__IN_PIN = in_pin 

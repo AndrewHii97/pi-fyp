@@ -1,32 +1,32 @@
 import sys
-import pathlib
-from config import ConfigParser
-from cli import create_fyp_cli
 from iot_core import IoTShadow 
-from device import DeviceQueue 
-import enum
+import device
+import logging
 
+logging.basicConfig(level=logging.NOTSET)
+logger = logging.getLogger(__name__)
+logger.info('Main Program Start')
+logger.setLevel(logging.DEBUG)
 
 def main(args):
-	# remove the first argument which specify the script name 
-	if not isinstance(args,type([])):
-		args = [args]
-	args.pop(0)	
-	parsed_args = create_fyp_cli(args)
-	config_parser = ConfigParser(parsed_args.file_path)
-	configuration = config_parser.get_configuration() 
 	# configure connection to the shadow cloud 
-        # iot_shadow = IoTShadow(configuration)
-        # iot_shadow.connect_shadow_client()
-        # print(iot_shadow.is_connected())
-        # iot_shadow.update_shadow()
-        # create devices read from configuration file  
+    """
+	iot_shadow = IoTShadow()
+    iot_shadow.connect_shadow_client()
+    print(iot_shadow.is_connected())
+    iot_shadow.update_shadow()
+    create devices read from configuration file  
+	"""
 
 	# initialize sensor and motor connected 
-	motor = device.Motor(32,36,38,40,0)
-	rfid = device.RfidReader(1)
-	glock = device.DoorLock(35,37,2)
-	usonic = device.UsonicSensor(10,8,3)
+	motor = device.Motor(32,36,38,40)
+	logger.info("motor initialized")
+	rfid = device.RfidReader()
+	logger.info("gate switch initialized")
+	glock = device.DoorLock(35,37)
+	logger.info("door lock initialized")
+	usonic = device.UsonicSensor(10,8)
+	logger.info("ultrasonic sensor initialized")
 	# rfid wait for rfid scan 
 	rfid.read()
 	print(rfid.get_id())
@@ -40,15 +40,13 @@ def main(args):
 	while usonic.get_distance() > 20: 
 		print("no person detected yet") 
 	print("usonicsensor detect something") 
-	# camera turn on to capture the scene
-
-	# the captured picture is sent to the cloud 
-        
-	# the face recognition is carry out 
-
-	# the loop reset if no error detected 
-
-	# the machine turn into alarming state if intruders detected 
+	'''
+	camera turn on to capture the scene
+	the captured picture is sent to the cloud 
+	the face recognition is carry out 
+	the loop reset if no error detected 
+	the machine turn into alarming state if intruders detected 
+	'''
 
 	return 0
 
