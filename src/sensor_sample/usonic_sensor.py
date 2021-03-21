@@ -13,7 +13,7 @@ def main(args):
         print("Sensor Settle")
         print("Emit wave for 10us")
         GPIO.output(TRIG,True)
-        time.sleep(0.00001)
+        time.sleep(0.0001)
         GPIO.output(TRIG,False)
         pulse_End = time.time() 
         while True : 
@@ -21,8 +21,8 @@ def main(args):
                 pulse_start = time.time()
             while GPIO.input(ECHO) == 1:
                 pulse_end = time.time()
-            print(f"pulse_start:{pulse_start}")
-            print(f"pulse_end:{pulse_end}")
+            print(f'pulse_start:{pulse_start}')
+            print(f'pulse_end:{pulse_end}')
             pulse_duration = pulse_end - pulse_start 
             distance = pulse_duration * 17150
             distance = round(distance, 2)
