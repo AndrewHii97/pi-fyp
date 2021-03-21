@@ -1,6 +1,7 @@
 from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTShadowClient
 import time 
 import logging 
+import setting
 
 class IoTShadow:
 	def __init__(self,configuration):

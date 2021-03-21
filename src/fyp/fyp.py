@@ -7,13 +7,6 @@ from device import DeviceQueue
 import enum
 
 
-
-class DeviceCode(enum.Enum):
-	MOTOR = "1"
-	RFID = "2"
-	GLOCK = "3" 
-	USONIC = "4" 
-
 def main(args):
 	# remove the first argument which specify the script name 
 	if not isinstance(args,type([])):
@@ -28,12 +21,12 @@ def main(args):
         # print(iot_shadow.is_connected())
         # iot_shadow.update_shadow()
         # create devices read from configuration file  
-	device_queue = DeviceQueue(configuration) 
-	motor = device_queue.get_device_using_id(DeviceCode.MOTOR)
-	rfid = device_queue.get_device_using_id(DeviceCode.RFID) 
-	glock = device_queue.get_device_using_id(DeviceCode.GLOCK) 
-	usonic = device_queue.get_device_using_id(DeviceCode.USONIC) 
-	# device logic 
+
+	# initialize sensor and motor connected 
+	motor = device.Motor(32,36,38,40,0)
+	rfid = device.RfidReader(1)
+	glock = device.DoorLock(35,37,2)
+	usonic = device.UsonicSensor(10,8,3)
 	# rfid wait for rfid scan 
 	rfid.read()
 	print(rfid.get_id())

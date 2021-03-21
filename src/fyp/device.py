@@ -250,7 +250,3 @@ class DoorLock(Device):
 	def get_status(self): 
 		return GPIO.input(self.__IN_PIN)
 
-class Camera(Device): 
-
-    def __init__(self): 
-
