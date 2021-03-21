@@ -1,5 +1,3 @@
-
-
 def main(args):
     reader = SimpleMFRC522()
     try : 
