@@ -76,7 +76,7 @@ class Motor(Device):
 				time.sleep(delay)
 
 	# go throuhg sequence table once in reverse order 
-	def backward(self,delay,steps=0): 
+	def backward(self,delay): 
 		# range() function start the iterator at 7,6,5,...,0
 		for ii in reversed(range(self.__STEP_COUNT)):
 			self.setStep(self.__SEQ[ii][0],self.__SEQ[ii][1],self.__SEQ[ii][2]
