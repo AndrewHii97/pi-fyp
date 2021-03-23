@@ -109,7 +109,6 @@ class USonicSensor(Device):
 		logger.info("calibrating")
 		GPIO.output(self.__TRIG,False)
 		time.sleep(2)
-		logger.info("get distance in calibrating")
 		self.__trig_dist = self.get_distance()
 
 	def get_distance(self): 
