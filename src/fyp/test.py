@@ -1,3 +1,4 @@
+import RPi.GPIO as GPIO 
 import sys 
 import device
 import time
@@ -6,13 +7,10 @@ rfid = device.RfidReader()
 glock = device.DoorLock(35,37)
 usonic = device.USonicSensor(8,10)
 
-
-
 # rfid.read() 
 # print("RFID detect something")
 # print(rfid.get_id())
 # print(rfid.get_text())
-
 
 
 # time.sleep(5)
@@ -22,11 +20,23 @@ usonic = device.USonicSensor(8,10)
 #     motor.forward(0.001)
 
 # usonic.calibrate()
-# while usonic.get_distance() > 20: 
-#     print("no person detected yet",end="\r")
-# print("usonicsensor detect something")
+# print("finish calibrating") 
+# while True :
+#     time.sleep(2)
+#     print(usonic.get_distance())
 
+# while True: 
+#     print(glock.get_status(),end="\r")
+GPIO.cleanup()
+GPIO.setmode(GPIO.BOARD)
+GPIO.setup(8,GPIO.IN,GPIO.PUD_DOWN) 
+
+time.sleep(5)
+print("start detection")
 while True: 
-    print(glock.get_status(),end="\r")
+    time.sleep(1)
+    sensor = GPIO.input(8)
+    print(sensor)
 
+GPIO.cleanup()
 

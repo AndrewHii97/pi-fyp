@@ -112,18 +112,17 @@ class USonicSensor(Device):
 		self.__trig_dist = self.get_distance()
 
 	def get_distance(self): 
-		pulse_start = 0 
-		pulse_end = 0 
+		pulse_start = None  
+		pulse_end = None 
 		GPIO.output(self.__TRIG,True)
 		time.sleep(0.00001)
 		GPIO.output(self.__TRIG,False) 
 		while GPIO.input(self.__ECHO) == 0:
-				# print(f"\r{GPIO.input(self.__ECHO)}",end="")
-				pulse_start = time.time()
-		print("start 2nd loop")
+			# print(f"\r{GPIO.input(self.__ECHO)}",end="")
+			pulse_start = time.time()
 		while GPIO.input(self.__ECHO) == 1:
-				# print(f"\r{GPIO.input(self.__ECHO)}",end="")
-				pulse_end = time.time()
+			# print(f"\r{GPIO.input(self.__ECHO)}",end="")
+			pulse_end = time.time()
 		print(f'pulse_start:{pulse_start}')
 		print(f'pulse_end:{pulse_end}')
 		pulse_duration = pulse_end - pulse_start 
