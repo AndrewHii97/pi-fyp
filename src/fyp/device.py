@@ -1,7 +1,9 @@
 import sys
+from io import BytesIO
 import RPi.GPIO as GPIO 
 import time
 import logging 
+from picamera import PiCamera
 from mfrc522 import SimpleMFRC522
 from obsvr_pttn import Publisher
 
@@ -112,7 +114,7 @@ class USonicSensor(Device):
 		self.__trig_dist = self.get_distance()
 
 	def get_distance(self): 
-		pulse_start = None  
+		pulse_start = None	
 		pulse_end = None 
 		GPIO.output(self.__TRIG,True)
 		time.sleep(0.00001)
@@ -203,3 +205,27 @@ class DoorLock(Device):
 	def get_status(self): 
 		return GPIO.input(self.__IN_PIN)
 
+class MotionSensor(Device): 
+	def __init__(self, in_pin):
+		super().__init__()
+		self.__IN_PIN = in_pin 
+		GPIO.setmode(GPIO.BOARD)
+		GPIO.setup(self.__IN_PIN,GPIO.IN,GPIO.PUD_DOWN)
+	
+	def __del__(self):
+		GPIO.cleanup([self.__IN_PIN])
+
+	def get_status(self):
+		return GPIO.input(self.__IN_PIN)
+
+class Camera(Device): 
+	def __init__(self):
+		super().__init__()
+		self.__camera = PiCamera(framerate=60,resolution=(2592,1944))
+		self.__camera.exposure_mode = 'sports'
+
+	def capture(self):
+		byte = BytesIO()
+		self.__camera.capture(byte,'jpeg')
+		byte.seek(0)
+		return byte
