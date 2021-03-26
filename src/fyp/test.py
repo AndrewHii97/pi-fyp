@@ -2,10 +2,16 @@ import RPi.GPIO as GPIO
 import sys 
 import device
 import time
-motor = device.Motor(32,36,38,40)
-rfid = device.RfidReader()
-glock = device.DoorLock(35,37)
-usonic = device.USonicSensor(8,10)
+# motor = device.Motor(32,36,38,40)
+# rfid = device.RfidReader()
+# glock = device.DoorLock(35,37)
+# usonic = device.USonicSensor(8,10)
+
+camera = device.Camera()
+data = camera.capture()
+# data.seek(0) move the pointer to the start of the byte so we can read the stream
+data.seek(0)
+print(data.read())
 
 # rfid.read() 
 # print("RFID detect something")
@@ -27,16 +33,16 @@ usonic = device.USonicSensor(8,10)
 
 # while True: 
 #     print(glock.get_status(),end="\r")
-GPIO.cleanup()
-GPIO.setmode(GPIO.BOARD)
-GPIO.setup(8,GPIO.IN,GPIO.PUD_DOWN) 
-
-time.sleep(5)
-print("start detection")
-while True: 
-    time.sleep(1)
-    sensor = GPIO.input(8)
-    print(sensor)
-
-GPIO.cleanup()
+# GPIO.cleanup()
+# GPIO.setmode(GPIO.BOARD)
+# GPIO.setup(8,GPIO.IN,GPIO.PUD_DOWN) 
+# 
+# time.sleep(5)
+# print("start detection")
+# while True: 
+#     time.sleep(1)
+#     sensor = GPIO.input(8)
+#     print(sensor)
+# 
+# GPIO.cleanup()
 

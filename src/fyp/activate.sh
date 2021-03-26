@@ -1,1 +1,0 @@
-/home/pi/Codes/pi_fyp/venv/bin/activate
