@@ -57,6 +57,23 @@ class Client():
     def search_faces(self, file_name):
         payload = self.__create_payload()
         payload["fileName"] = file_name
-        r = request.post(f'{self.__ENDPOINT}/device/aws/search-faces',data=payload)
+        r = requests.post(f'{self.__ENDPOINT}/device/aws/search-faces',data=payload)
         return r 
+
+    # input is an array of faceIds 
+    def find_faceOwner(self, faceIds):
+        payload = self.__create_payload()
+        payload["FaceIndex"] = faceIds
+        r = requests.post(f'{self.__ENDPOINT}/device/search/faceindex/person',data=payload)
+        return r 
+
+    def create_issues(self, description):
+        payload = self.__create_payload()
+        payload["description"] = description 
+        r = requests.post(f'{self.__ENDPOINT}/device/issue/create',data=payload)
+
+    def create_entry(self, personId): 
+        payload = self.__create_payload() 
+        payload['personid
+
     
