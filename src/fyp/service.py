@@ -39,7 +39,8 @@ class Client():
         payload = self.__create_payload()
         payload["file_name"] = file_name 
         r = requests.post(f'{self.__ENDPOINT}/device/add-img',data=payload)
-        return r 
+        logger.debug(r.json())
+        return r.json() 
 
     # function to detect number of person in the image 
     def count_persons(self, file_name): 
@@ -65,15 +66,26 @@ class Client():
         payload = self.__create_payload()
         payload["FaceIndex"] = faceIds
         r = requests.post(f'{self.__ENDPOINT}/device/search/faceindex/person',data=payload)
-        return r 
+        return r.json() 
 
-    def create_issues(self, description):
+    def create_issue(self, description):
         payload = self.__create_payload()
         payload["description"] = description 
         r = requests.post(f'{self.__ENDPOINT}/device/issue/create',data=payload)
+        logger.debug(r.json())
+        return r.json() 
 
-    def create_entry(self, personId): 
+    def link_issues_photo(self, issueid, photoid): 
         payload = self.__create_payload() 
-        payload['personid
+        payload['issueid'] = issueid
+        payload['photoid'] = photoid
+        r = requests.post(f'{self.__ENDPOINT}/device/issue-photo/create',data=payload)
+        return r 
 
+    def create_entry(self, personId, photoId): 
+        payload = self.__create_payload() 
+        payload['personid'] = personId
+        payload['photoid'] = photoId
+        r = requests.post(f'{self.__ENDPOINT}/device/entry/create',data=payload) 
+        return r.json() 
     

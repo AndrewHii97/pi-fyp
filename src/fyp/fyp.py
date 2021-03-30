@@ -15,6 +15,8 @@ logger = logging.getLogger(__name__)
 logger.info('Main Program Start')
 logger.setLevel(logging.DEBUG)
 
+	
+
 # configure connection to cloud shadow 
 def ConnectToShadow(): 
 	iot_shadow = IoTShadow()
@@ -27,8 +29,8 @@ def run():
 	# initialize sensor and motor connected 
 	motor = device.Motor(32,36,38,40)
 	rfid = device.RfidReader()
-	glock = device.DoorLock(35,37)
 	motion_sensor = device.MotionSensor(8)
+	glock = device.DoorLock(35, 37)
 	camera = device.Camera()
 	client = Client('http://192.168.0.137:3000',DEVICE_NAME, PASSWORD)
 		
@@ -54,7 +56,8 @@ def run():
 		r = client.check_rfid(rfid.get_id())
 		res = r.json()
 		logger.debug(f'Response:{res}') 
-		rfid_owners = res # key owner or key sharer list 
+		rfid_owner = []
+		rfid_owner = res['keyowner'] # key owner or key sharer list 
 		
 		if res['status'] == True and len(res['keyowner']) != 0: 
 			openGate()
@@ -83,12 +86,12 @@ def run():
 
 		logger.info("start sensing for motion")	
 		while motion_sensor == 0 :
-			time.sleep(1)
-			logger.debug("no person") 
+			time.sleep(0.1)
+
 		logger.info("motion sensor detect person")
 		beepy.beep(sound='coin')	
-
 		byte = camera.capture() # capture images after motion sensor trigger 
+		beepy.beep(sound='coin')
 		file_name = str(uuid.uuid1()) + ".jpg" # uuid as filename from hostname and time 
 		logger.debug(f"UUID:{file_name}")
 
@@ -102,7 +105,6 @@ def run():
 
 		logger.info("uploaded imaged to s3")
 		image  = client.update_photos_db(file_name) # update database on photo information
-		logger.debug(image) 	
 		logger.info("done update photos table of database")
 
 		r = client.count_persons(file_name)
@@ -118,32 +120,33 @@ def run():
 		logger.info("done counting number of faces") 
 		face_count = res['FaceCount'] # Face Count 
 		
-
 		if face_count > person_count: 
 			logger.info("face count > person_count")
 			person_count = face_count
 		elif face_count < person_count: 
 			logger.info("face count < person count:file issue ")
-			client.create_issues("Some Face Undetected") 
+			issue = client.create_issue("Some Face Undetected") # Issue! 
+			client.link_issues_photo(issue['issueid'], image['photoid']) 
 			logger.info("process reset") 
 			continue 
-		elif face_count = person_count: 
+		elif face_count == person_count: 
 			logger.info("face count = person count") 
 
 		# lastly check if no person detected 
 		if person_count == 0: 
 			logger.info("Gate Open BUt No Person Detected: File Issues")
 			logger.info("Process Reseted") 
-			client.create_issues('No Person Detected')
+			issue = client.create_issue('No Person Detected') # Issue!
+			client.link_issues_photo(issue['issueid'], image['photoid'])
 			continue 
 
-		# search for person in the image captured 	
+		# search for person in the image captured	
 		r = client.search_faces(file_name)
 		res = r.json() 
 		logger.debug(res)
 		
 		# check if any error in searching process 
-		if res['status'] == false: 
+		if res['status'] == False: 
 			logger.info("error searching faces") 
 			logger.info("process reseted")
 			continue 
@@ -154,38 +157,106 @@ def run():
 			faceMatches = result['FaceMatches']
 			for face in faceMatches:
 				faceIds.append(face['Face']['FaceId'])
-		logger.debug(faceIds)
+		logger.debug(f'All matching faces: {faceIds}')
 
-		# find the faceids belong to which person 
-		r = client.find_faceOwner(faceIds)
-		personsInPhoto = r.json() # array of persons data 
-		logger.debug(res)
-		logger.info("Done Searching FaceID Owner in DB") 
+
+		personsInPhoto = []	
+		if len(faceIds) > 0: 
+			# find the faceids belong to which person 
+			personsInPhoto	= client.find_faceOwner(faceIds)
+			logger.info(f"number of person rekognized :{len(personsInPhoto)}")
+			logger.debug(personsInPhoto)
+			logger.info("Done Searching FaceID Owner in DB") 
+		else : 
+			# when no any matching faces found 
+			logger.info("no matching faces after search") 
 
 		hasTailgaters = False
 		if face_count > 1 :
 			hasTailgaters = True  
-
-		if hasTailgaters: 
-			if face_count == len(personsInPhoto): 
-				logger.info("the tailgater is another residents") 
+		
+		owner = findCommon(personsInPhoto, rfid_owner)
+		ownerCount = len(owner)
+		nonOwner = findDiff(personsInPhoto, owner) 
+		nonOwnerCount = len(nonOwner)
+		intruderCount = face_count - len(personsInPhoto)
+		logger.debug(f'KeyOwner:{owner}')
+		logger.debug(f'NonOwner:{nonOwner}')
+		logger.debug(f'Intruders:{intruderCount}')
+		logger.debug(f'HasTailgaters:{hasTailgaters}')
+		
+		if hasTailgaters: # when taigating occur  
+			if len(personsInPhoto) == 0 : # no a single face recognized  
+				logger.info("More than a single intruders")
+				issue = client.create_issue(f"{intruderCount} Intruders") 
+				client.link_issues_photo(issue['issueid'], image['photoid'])
+			elif face_count == len(personsInPhoto): # when all face recognized 
+				logger.info("the tailgater is another residents/visitor") 
+				issue = client.create_issue("Tailgating by Resident/Visitor")
+				client.link_issues_photo(issue['issueid'], image['photoid'])
+				for person in personsInPhoto : 
+					client.create_entry(person['id'], image['photoid'])
+			elif face_count > len(personsInPhoto): # some face not recognized
+				logger.info("have tailgater which is an outsider")
+				issue = client.create_issue(f"Tailgated by {intruderCount} Intruders")
+				client.link_issues_photo(issue['issueid'], image['photoid'])
+				for person in personsInPhoto :
+					client.create_entry(person['id'], image['photoid'])
+		else: # when no tailgating	
+			logger.info("Single Person Condition")
+			if len(personsInPhoto) == 0: # if not a single face recognized	
+				logger.info("Intruder detected using resident rfid") 
+				issue = client.create_issue(f"Intrudres - RFID:{rfid_value} ") 
+				client.link_issues_photo(issue['issueid'],image['photoid'])
+			else: # the only face is recognized  
+				if isInList(personsInPhoto[0],rfid_owner ): 
+					logger.info("Resident Keyowner Entering")
+					client.create_entry(personsInPhoto[0]['id'], image['photoid'])
+				else: 
+					logger.info('Resident Non key owner entering')
+					issue = client.create_issue(
+						"Resident Non Key Owner - RFID:{rfid_value}")
+					client.link_issues_photo(issue['issueid'], image['photoid'])
+					client.create_entry(personsInPhoto[0]['id'], image['photoid'])
 					
-			elif face_count < len(personsInPhoto): 
-				logger.info("the tailgater is an outsider")
-		else: 
-			
-			pass
 		lock_door.join()
 
+def isInList( person, personList): 
+	for i in personList: 
+		if person['id'] == i['id']:
+			return True 
+	return False
 
+# work person id which is unique 
+def findCommon(list1, list2): 
+	common = []
+	for i  in list1:
+		for ii in list2: 
+			if i['id'] == ii['id']: 
+				common.append(i) 
+	return common
+
+def findDiff(list1,list2): 
+	refList = []
+	searchList = []
+	if len(list1) > len(list2): 
+		refList = list2.copy()
+		searchList = list1.copy() 
+	else: 
+		refList = list1.copy() 
+		searchList = list2.copy()
+
+	for i in refList:
+		counter = 0	
+		for ii in searchList: 
+			if i['id'] == ii['id']: 
+				searchList.pop(counter)
+			counter = counter + 1
+	return searchList
 
 def main(args):
 	# ConnectToShadow 
-	try:
-		run()
-	except: 
-		logger.info("program manually stopped") 	
-	
+	run()
 	logger.info("main completed")
 	return 0
 	# the face recognition is carry out 
@@ -193,4 +264,3 @@ def main(args):
 
 if __name__ == '__main__':
 	sys.exit(main(sys.argv))
-

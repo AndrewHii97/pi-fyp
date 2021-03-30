@@ -221,7 +221,9 @@ class MotionSensor(Device):
 class Camera(Device): 
 	def __init__(self):
 		super().__init__()
-		self.__camera = PiCamera(resolution=(2592, 1944))
+		# self.__camera = PiCamera(resolution=(2592, 1944))
+		# self.__camera = PiCamera(resolution=(1920, 1080))
+		self.__camera = PiCamera(resolution=(1296,972))
 		self.__camera.exposure_mode = 'sports'
 
 	def capture(self):
