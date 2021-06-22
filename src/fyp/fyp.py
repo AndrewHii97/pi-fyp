@@ -10,12 +10,10 @@ from service import Client
 from setting import DEVICE_NAME, PASSWORD 
 
 
-logging.basicConfig(level=logging.NOTSET)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 logger.info('Main Program Start')
-logger.setLevel(logging.DEBUG)
-
-	
+logger.setLevel(logging.INFO)
 
 # configure connection to cloud shadow 
 def ConnectToShadow(): 
@@ -35,65 +33,66 @@ def run():
 	client = Client('http://192.168.0.137:3000',DEVICE_NAME, PASSWORD)
 		
 	def openGate():
-		for counter in range(100):
-			motor.backward(0.001)
+		for counter in range(130):
+			motor.forward(0.001)
+		motor.go_idle()
 
 	def closeGate(): 
-		for counter in range(100): 
-			motor.forward(0.001)
+		for counter in range(130): 
+			motor.backward(0.001)
+		motor.go_idle()
 
 	def lockdoor_thread():	# thread lock gate upon gate closed
 		while glock.get_status() == 0 : 
 			time.sleep(0.1)
 		closeGate()
-		logger.debug("gate locked") 
+		logger.info("gate locked") 
 		
 	while isActivated:
 		rfid.read()
 		beepy.beep(sound=1) # generte a beep after rfid read 
-		logger.debug(f'RFID VALUE:{rfid.get_id()}')
+		logger.info(f'RFID VALUE:{rfid.get_id()}')
 		rfid_value = rfid.get_id() # rfid value read 
 		r = client.check_rfid(rfid.get_id())
 		res = r.json()
 		logger.debug(f'Response:{res}') 
 		rfid_owner = []
 		rfid_owner = res['keyowner'] # key owner or key sharer list 
+		openFlag = False
 		
 		if res['status'] == True and len(res['keyowner']) != 0: 
-			openGate()
+			openFlag = True 
 		else: 
 			logger.info("RFID not recognized") 
+			openFlag = False
 			continue 
 			
 		# timeout the gate 
-		isOpened = True 
-		counter = 0 
-		while glock.get_status() == 1: 
-			time.sleep(1)
-			counter = counter + 1 
-			if counter >= 3: 
-				logger.info("Gate Not Opened Timeout") 
-				isOpened = False 
-				break 
+		# isOpened = True 
+		# counter = 0 
+		# while glock.get_status() == 1: 
+		#	time.sleep(1)
+		#	counter = counter + 1 
+		#	if counter >= 3: 
+		#		logger.info("Gate Not Opened Timeout") 
+		#		isOpened = False 
+		#		break 
 
-		if isOpened == False : 
-			continue 
+		# if isOpened == False : 
+		#	continue 
 			
-		time.sleep(2)	
-		logger.info("start lock gate thread ")
-		lock_door = threading.Thread(target=lockdoor_thread)
-		lock_door.start()
 
 		logger.info("start sensing for motion")	
-		while motion_sensor == 0 :
-			time.sleep(0.1)
+		while motion_sensor.get_status() == 0 :
+			print(motion_sensor.get_status())
+			time.sleep(1)
 
 		logger.info("motion sensor detect person")
 		beepy.beep(sound='coin')	
 		byte = camera.capture() # capture images after motion sensor trigger 
 		beepy.beep(sound='coin')
 		file_name = str(uuid.uuid1()) + ".jpg" # uuid as filename from hostname and time 
-		logger.debug(f"UUID:{file_name}")
+		logger.info(f"UUID:{file_name}")
 
 		# upload photo to s3 
 		r = client.upload_images(file_name,byte)
@@ -112,6 +111,7 @@ def run():
 		logger.debug(res)
 		logger.info("done counting number of persons")
 		person_count = res['PersonCount'] # Persons Count 
+		logger.info(f"PersonCount:{person_count}")
 
 
 		r = client.count_faces(file_name) 
@@ -119,6 +119,7 @@ def run():
 		logger.debug(res)
 		logger.info("done counting number of faces") 
 		face_count = res['FaceCount'] # Face Count 
+		logger.info(f"FaceCount:{face_count}")
 		
 		if face_count > person_count: 
 			logger.info("face count > person_count")
@@ -146,9 +147,13 @@ def run():
 		logger.debug(res)
 		
 		# check if any error in searching process 
+		if res['hasUnIndexed'] == True : 
+			logger.error(f"some faces captured unclear")
+			logger.warning("process reseted")
+			continue
 		if res['status'] == False: 
-			logger.info("error searching faces") 
-			logger.info("process reseted")
+			logger.error(f"error searching faces:\n{res['error']}") 
+			logger.warning("process reseted")
 			continue 
 	
 		results = res['Result']
@@ -157,7 +162,7 @@ def run():
 			faceMatches = result['FaceMatches']
 			for face in faceMatches:
 				faceIds.append(face['Face']['FaceId'])
-		logger.debug(f'All matching faces: {faceIds}')
+		logger.info(f'All matching faces: {faceIds}')
 
 
 		personsInPhoto = []	
@@ -180,44 +185,68 @@ def run():
 		nonOwner = findDiff(personsInPhoto, owner) 
 		nonOwnerCount = len(nonOwner)
 		intruderCount = face_count - len(personsInPhoto)
-		logger.debug(f'KeyOwner:{owner}')
-		logger.debug(f'NonOwner:{nonOwner}')
-		logger.debug(f'Intruders:{intruderCount}')
-		logger.debug(f'HasTailgaters:{hasTailgaters}')
+		logger.info(f'KeyOwner:{owner}')
+		logger.info(f'NonOwner:{nonOwner}')
+		logger.info(f'Intruders:{intruderCount}')
+		logger.info(f'HasTailgaters:{hasTailgaters}')
 		
 		if hasTailgaters: # when taigating occur  
 			if len(personsInPhoto) == 0 : # no a single face recognized  
 				logger.info("More than a single intruders")
 				issue = client.create_issue(f"{intruderCount} Intruders") 
 				client.link_issues_photo(issue['issueid'], image['photoid'])
+				openFlag = False
+				beepy.beep(sound=3)
 			elif face_count == len(personsInPhoto): # when all face recognized 
-				logger.info("the tailgater is another residents/visitor") 
-				issue = client.create_issue("Tailgating by Resident/Visitor")
+				logger.info("the tailgater is another residents") 
+				issue = client.create_issue("Tailgating by Resident")
 				client.link_issues_photo(issue['issueid'], image['photoid'])
 				for person in personsInPhoto : 
-					client.create_entry(person['id'], image['photoid'])
+					client.create_entry(person['id'], image['photoid'],True)
+				openFlag = True
+				beepy.beep(sound=4)
 			elif face_count > len(personsInPhoto): # some face not recognized
 				logger.info("have tailgater which is an outsider")
 				issue = client.create_issue(f"Tailgated by {intruderCount} Intruders")
 				client.link_issues_photo(issue['issueid'], image['photoid'])
 				for person in personsInPhoto :
-					client.create_entry(person['id'], image['photoid'])
+					client.create_entry(person['id'], image['photoid'],True)
+				openFlag= False
+				beepy.beep(sound=3)
 		else: # when no tailgating	
 			logger.info("Single Person Condition")
 			if len(personsInPhoto) == 0: # if not a single face recognized	
 				logger.info("Intruder detected using resident rfid") 
 				issue = client.create_issue(f"Intrudres - RFID:{rfid_value} ") 
 				client.link_issues_photo(issue['issueid'],image['photoid'])
+				openFlag= False 
+				beepy.beep(sound=3)
 			else: # the only face is recognized  
 				if isInList(personsInPhoto[0],rfid_owner ): 
 					logger.info("Resident Keyowner Entering")
-					client.create_entry(personsInPhoto[0]['id'], image['photoid'])
+					client.create_entry(personsInPhoto[0]['id'], image['photoid'],False)
+					openFlag = True
+					beepy.beep(sound=4)
 				else: 
 					logger.info('Resident Non key owner entering')
 					issue = client.create_issue(
-						"Resident Non Key Owner - RFID:{rfid_value}")
+						f"Resident Non Key Owner - RFID:{rfid_value}")
 					client.link_issues_photo(issue['issueid'], image['photoid'])
-					client.create_entry(personsInPhoto[0]['id'], image['photoid'])
+					client.create_entry(personsInPhoto[0]['id'], image['photoid'],True)
+					openFlag = True
+					beepy.beep(sound=4)
+		
+		if openFlag == True: 
+			logger.info("gate start to unlock")
+			openGate()
+			time.sleep(2)
+		else:
+			logger.info("gate does not unlock")
+			continue;
+
+		logger.info("start lock gate thread ")
+		lock_door = threading.Thread(target=lockdoor_thread)
+		lock_door.start()
 					
 		lock_door.join()
 

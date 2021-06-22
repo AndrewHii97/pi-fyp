@@ -1,9 +1,9 @@
 import logging 
 import requests 
 
-logging.basicConfig(level=logging.NOTSET) 
+logging.basicConfig(level=logging.INFO) 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 class Client(): 
     def __init__(self,endpoint,device_name,password):
@@ -82,10 +82,11 @@ class Client():
         r = requests.post(f'{self.__ENDPOINT}/device/issue-photo/create',data=payload)
         return r 
 
-    def create_entry(self, personId, photoId): 
+    def create_entry(self, personId, photoId,hasIssue): 
         payload = self.__create_payload() 
         payload['personid'] = personId
         payload['photoid'] = photoId
+        payload['hasissue'] = hasIssue
         r = requests.post(f'{self.__ENDPOINT}/device/entry/create',data=payload) 
         return r.json() 
     

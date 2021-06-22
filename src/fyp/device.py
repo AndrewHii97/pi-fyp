@@ -125,8 +125,6 @@ class USonicSensor(Device):
 		while GPIO.input(self.__ECHO) == 1:
 			# print(f"\r{GPIO.input(self.__ECHO)}",end="")
 			pulse_end = time.time()
-		print(f'pulse_start:{pulse_start}')
-		print(f'pulse_end:{pulse_end}')
 		pulse_duration = pulse_end - pulse_start 
 		distance = pulse_duration * 17150
 		distance = round(distance, 2)
@@ -222,8 +220,8 @@ class Camera(Device):
 	def __init__(self):
 		super().__init__()
 		# self.__camera = PiCamera(resolution=(2592, 1944))
-		# self.__camera = PiCamera(resolution=(1920, 1080))
-		self.__camera = PiCamera(resolution=(1296,972))
+		self.__camera = PiCamera(resolution=(1920, 1080))
+		# self.__camera = PiCamera(resolution=(1296,972))
 		self.__camera.exposure_mode = 'sports'
 
 	def capture(self):
