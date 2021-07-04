@@ -50,7 +50,7 @@ def run():
 		
 	while isActivated:
 		rfid.read()
-		beepy.beep(sound=1) # generte a beep after rfid read 
+		beepy.beep(sound='coin') # generte a beep after rfid read 
 		logger.info(f'RFID VALUE:{rfid.get_id()}')
 		rfid_value = rfid.get_id() # rfid value read 
 		r = client.check_rfid(rfid.get_id())
@@ -65,6 +65,7 @@ def run():
 		else: 
 			logger.info("RFID not recognized") 
 			openFlag = False
+			beepy.beep(sound='wilhelm')
 			continue 
 			
 		# timeout the gate 
@@ -90,7 +91,6 @@ def run():
 		logger.info("motion sensor detect person")
 		beepy.beep(sound='coin')	
 		byte = camera.capture() # capture images after motion sensor trigger 
-		beepy.beep(sound='coin')
 		file_name = str(uuid.uuid1()) + ".jpg" # uuid as filename from hostname and time 
 		logger.info(f"UUID:{file_name}")
 
@@ -129,6 +129,7 @@ def run():
 			issue = client.create_issue("Some Face Undetected") # Issue! 
 			client.link_issues_photo(issue['issueid'], image['photoid']) 
 			logger.info("process reset") 
+			beepy.sound('wilhelm')
 			continue 
 		elif face_count == person_count: 
 			logger.info("face count = person count") 
@@ -139,6 +140,7 @@ def run():
 			logger.info("Process Reseted") 
 			issue = client.create_issue('No Person Detected') # Issue!
 			client.link_issues_photo(issue['issueid'], image['photoid'])
+			beepy.sound('wilhelm')
 			continue 
 
 		# search for person in the image captured	
@@ -196,7 +198,7 @@ def run():
 				issue = client.create_issue(f"{intruderCount} Intruders") 
 				client.link_issues_photo(issue['issueid'], image['photoid'])
 				openFlag = False
-				beepy.beep(sound=3)
+				beepy.beep(sound='wilhelm')
 			elif face_count == len(personsInPhoto): # when all face recognized 
 				logger.info("the tailgater is another residents") 
 				issue = client.create_issue("Tailgating by Resident")
@@ -204,7 +206,7 @@ def run():
 				for person in personsInPhoto : 
 					client.create_entry(person['id'], image['photoid'],True)
 				openFlag = True
-				beepy.beep(sound=4)
+				beepy.beep(sound='ping')
 			elif face_count > len(personsInPhoto): # some face not recognized
 				logger.info("have tailgater which is an outsider")
 				issue = client.create_issue(f"Tailgated by {intruderCount} Intruders")
@@ -212,7 +214,7 @@ def run():
 				for person in personsInPhoto :
 					client.create_entry(person['id'], image['photoid'],True)
 				openFlag= False
-				beepy.beep(sound=3)
+				beepy.beep(sound='wilhelm')
 		else: # when no tailgating	
 			logger.info("Single Person Condition")
 			if len(personsInPhoto) == 0: # if not a single face recognized	
@@ -220,13 +222,13 @@ def run():
 				issue = client.create_issue(f"Intrudres - RFID:{rfid_value} ") 
 				client.link_issues_photo(issue['issueid'],image['photoid'])
 				openFlag= False 
-				beepy.beep(sound=3)
+				beepy.beep(sound='wilhelm')
 			else: # the only face is recognized  
 				if isInList(personsInPhoto[0],rfid_owner ): 
 					logger.info("Resident Keyowner Entering")
 					client.create_entry(personsInPhoto[0]['id'], image['photoid'],False)
 					openFlag = True
-					beepy.beep(sound=4)
+					beepy.beep(sound='ping')
 				else: 
 					logger.info('Resident Non key owner entering')
 					issue = client.create_issue(
@@ -234,7 +236,7 @@ def run():
 					client.link_issues_photo(issue['issueid'], image['photoid'])
 					client.create_entry(personsInPhoto[0]['id'], image['photoid'],True)
 					openFlag = True
-					beepy.beep(sound=4)
+					beepy.beep(sound='ping')
 		
 		if openFlag == True: 
 			logger.info("gate start to unlock")
